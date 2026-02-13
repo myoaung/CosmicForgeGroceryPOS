@@ -1,4 +1,4 @@
--- ==========================================
+/* -- ==========================================
 -- 0. MOCK SUPABASE AUTH FOR LOCAL DEVELOPMENT
 -- ==========================================
 -- This section prevents errors when running RLS policies locally.
@@ -13,7 +13,7 @@ AS $$
   -- Returns a dummy UUID to act as the default local tenant
   SELECT '{"app_metadata": {"tenant_id": "00000000-0000-0000-0000-000000000000"}}'::jsonb;
 $$;
-
+ */
 -- ==========================================
 -- 1. CORE MULTI-TENANT TABLES
 -- ==========================================
@@ -36,6 +36,8 @@ CREATE TABLE stores (
     tax_rate NUMERIC(4,2) DEFAULT 5.0, -- Default Myanmar Commercial Tax
     is_geofence_enabled BOOLEAN DEFAULT true,
     authorized_bssid TEXT, -- WiFi-based hardware security
+    latitude NUMERIC(10, 8), -- Geofencing Center Point
+    longitude NUMERIC(11, 8), -- Geofencing Center Point
     created_at TIMESTAMPTZ DEFAULT now()
 );
 

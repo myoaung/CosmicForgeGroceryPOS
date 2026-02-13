@@ -35,3 +35,30 @@
 - **Type Safety**: Compile-time safety for providers.
 - **Testability**: Easy detailed overrides for unit and widget tests.
 - **Decoupling**: Separates UI from Business Logic (Controllers/Repositories).
+
+## 5. Multi-Store Context (Phase 2)
+**Decision**: Use `StoreService` + Riverpod as the singleton source of truth.
+**Reasoning**:
+- **Requirement**: Support for multiple stores per tenant, with distinct inventory and tax settings.
+- **Reference Logic**:
+    - `activeStoreProvider`: Exposes the currently selected `Store` object (nullable).
+    - **Flexible Tax Rate**:
+        - Managers can manually edit `tax_rate` (e.g., 0% for small shops < 50m MMK revenue).
+        - **Audit Requirement**: Any change to `tax_rate` MUST be logged to `audit_trail`.
+    - **Rounding**: Global access to MMK Rounding logic via `roundingLogicProvider`.
+
+## 6. Security Guardrails (Phase 2)
+**Decision**: Enforce physical presence via GPS (Haversine) and BSSID binding.
+**Reasoning**:
+- **Geofencing**:
+    - **Algorithm**: Haversine Formula (precise sphere calculation).
+    - **Threshold**: Strict 100 meters radius from `store.latitude`/`store.longitude`.
+- **Hardware Binding**:
+    - **Check**: `current_bssid == store.authorized_bssid`.
+    - **Enforcement**: Actions blocked if mismatch (unless "Manager Override" - future phase).
+- **VPN Detection Strategy**:
+    - **Workflow**:
+        1.  **Client**: App captures `public_ip` (via external ping) and `device_bssid` during Sync Handshake.
+        2.  **Transport**: Headers sent to Supabase Edge Function: `x-client-ip`, `x-bssid`.
+        3.  **Server**: Edge Function compares `x-client-ip` against MaxMind/IP-API database.
+        4.  **Action**: If "Data Center/VPN" detected -> Log event in `security_logs` & (Optionally) Block Sync.

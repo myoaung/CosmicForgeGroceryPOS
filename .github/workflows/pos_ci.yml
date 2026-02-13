@@ -1,0 +1,42 @@
+name: Cosmic Forge CI (Safety Gate)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test_and_verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0' # Matches your project SDK
+          channel: 'stable'
+
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+
+      - name: 🛡️ Secret Scan (Safety Check)
+        run: |
+          if grep -q "SUPABASE_ANON_KEY=eyJ" .env 2>/dev/null; then
+            echo "❌ ERROR: Real .env file detected in repository! Blocking build."
+            exit 1
+          fi
+
+      - name: 🏗️ Verify Drift Code Generation
+        run: flutter pub run build_runner build --delete-conflicting-outputs
+
+      - name: 🧪 Run POS Logic Tests
+        # This runs your verified cart_provider_test and store_service_test
+        run: flutter test
+
+      - name: 📊 Check Migration Integrity
+        # Ensures the agent didn't forget to commit the SQL files to infra/
+        run: ls infra/supabase/migrations/*.sql
