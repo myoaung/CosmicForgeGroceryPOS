@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery/core/database/local_database.dart';
 import 'package:grocery/core/providers/database_provider.dart';
 import 'package:grocery/features/pos/providers/cart_provider.dart';
+import 'package:grocery/core/providers/store_provider.dart';
+import 'package:drift/drift.dart' as drift;
 
 class POSLayout extends ConsumerWidget {
   const POSLayout({super.key});
@@ -67,40 +69,7 @@ class POSLayout extends ConsumerWidget {
                     },
                   ),
                 ),
-                // Seed Button for Debugging
-                ElevatedButton(
-                  onPressed: () async {
-                    // Seed dummy products
-                    await database.into(database.products).insertOnConflictUpdate(
-                      ProductsCompanion.insert(
-                        id: 'p1', 
-                        name: 'Rice (1 Bag)', 
-                        price: 50000, 
-                        isTaxExempt: const drift.Value(true), 
-                        unitType: 'UNIT'
-                      )
-                    );
-                    await database.into(database.products).insertOnConflictUpdate(
-                      ProductsCompanion.insert(
-                        id: 'p2', 
-                        name: 'Cooking Oil (1L)', 
-                        price: 8000, 
-                        isTaxExempt: const drift.Value(true), 
-                        unitType: 'UNIT' // Liquid usually UNIT or WEIGHT?
-                      )
-                    );
-                    await database.into(database.products).insertOnConflictUpdate(
-                      ProductsCompanion.insert(
-                        id: 'p3', 
-                        name: 'Beer (Can)', 
-                        price: 2500, 
-                        isTaxExempt: const drift.Value(false), 
-                        unitType: 'UNIT'
-                      )
-                    );
-                  }, 
-                  child: const Text('Seed Dummy Products')
-                ),
+                // Seed Button removed for production
               ],
             ),
           ),
@@ -211,7 +180,6 @@ class POSLayout extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }

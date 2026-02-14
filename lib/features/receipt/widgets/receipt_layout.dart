@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/database/local_database.dart';
+import 'package:grocery/core/database/local_database.dart';
 import 'package:intl/intl.dart';
 
 class ReceiptLayout extends StatelessWidget {

@@ -1,14 +1,24 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../database/local_database.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' as drift;
 import 'dart:io';
 import 'supabase_storage_service.dart';
+
+import 'dart:async';
 
 class SyncService {
   final LocalDatabase _db;
   final SupabaseClient? _supabase;
+  Timer? _syncTimer;
 
-  SyncService(this._db, this._supabase);
+  SyncService(this._db, this._supabase) {
+    // Fallback for offline mode: specific polling or trigger on actions.
+    // connectivity_plus requires symlinks which failed.
+    // We will poll every 60 seconds to check for pending items.
+    _syncTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      syncPendingTransactions();
+    });
+  }
 
   Future<void> syncPendingTransactions() async {
     if (_supabase == null) {
@@ -61,7 +71,7 @@ class SyncService {
 
         // 4. Mark as Synced Local
         await (_db.update(_db.transactions)..where((t) => t.id.equals(transaction.id)))
-            .write(const TransactionsCompanion(isSynced: Value(true)));
+            .write(const TransactionsCompanion(isSynced: drift.Value(true)));
 
         print('SyncService: Synced Transaction ${transaction.id}');
 
@@ -105,7 +115,7 @@ class SyncService {
         if (url != null) {
           // Update DB
           await (_db.update(_db.products)..where((p) => p.id.equals(product.id)))
-            .write(ProductsCompanion(imageUrl: Value(url)));
+            .write(ProductsCompanion(imageUrl: drift.Value(url)));
             
           print('SyncService: Uploaded image for ${product.name}');
           
@@ -149,9 +159,9 @@ class SyncService {
               name: cloudJson['name'],
               price: (cloudJson['price'] as num).toDouble(),
               unitType: cloudJson['unit_type'] ?? 'UNIT',
-              isTaxExempt: Value(cloudJson['is_tax_exempt'] ?? false),
-              imageUrl: Value(cloudJson['image_url']),
-              updatedAt: Value(cloudUpdatedAt),
+              isTaxExempt: drift.Value(cloudJson['is_tax_exempt'] ?? false),
+              imageUrl: drift.Value(cloudJson['image_url']),
+              updatedAt: drift.Value(cloudUpdatedAt),
             )
           );
         } else {
@@ -162,12 +172,12 @@ class SyncService {
             // Cloud is newer -> Overwrite Local
             await (_db.update(_db.products)..where((p) => p.id.equals(cloudId))).write(
               ProductsCompanion(
-                name: Value(cloudJson['name']),
-                price: Value((cloudJson['price'] as num).toDouble()),
-                unitType: Value(cloudJson['unit_type']),
-                isTaxExempt: Value(cloudJson['is_tax_exempt']),
-                imageUrl: Value(cloudJson['image_url']),
-                updatedAt: Value(cloudUpdatedAt),
+                name: drift.Value(cloudJson['name']),
+                price: drift.Value((cloudJson['price'] as num).toDouble()),
+                unitType: drift.Value(cloudJson['unit_type'] ?? 'UNIT'),
+                isTaxExempt: drift.Value(cloudJson['is_tax_exempt'] ?? false),
+                imageUrl: drift.Value(cloudJson['image_url']),
+                updatedAt: drift.Value(cloudUpdatedAt),
               )
             );
             print('SyncService: Updated local product $cloudId from cloud.');
@@ -181,7 +191,7 @@ class SyncService {
                  
                  // Update Local DB to have this URL
                  await (_db.update(_db.products)..where((p) => p.id.equals(cloudId))).write(
-                   ProductsCompanion(imageUrl: Value(cloudUrl))
+                   ProductsCompanion(imageUrl: drift.Value(cloudUrl))
                  );
                  print('SyncService: Merged cloud URL into local product $cloudId.');
                  
@@ -194,7 +204,7 @@ class SyncService {
                // Note: If we just merged the URL above, we should include it in the push.
                // We need to re-read or construct the object.
                final productToPush = (localProduct.imageUrl == null && cloudJson['image_url'] != null)
-                   ? localProduct.copyWith(imageUrl: cloudJson['image_url'] as String)
+                   ? localProduct.copyWith(imageUrl: drift.Value(cloudJson['image_url'] as String))
                    : localProduct;
 
                await _pushProductToCloud(productToPush, tenantId);

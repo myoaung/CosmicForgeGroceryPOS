@@ -1,19 +1,25 @@
+$keystorePath = "$PSScriptRoot\..\android\app\upload-keystore.jks"
+$keyToolPath = "keytool" # Assumes keytool is in PATH
 
-# Generate Upload Keystore
-# Run this script to create the keystore file.
-# Make sure 'keytool' is in your PATH (part of JDK).
+if (Test-Path $keystorePath) {
+    Write-Host "Keystore already exists at $keystorePath"
+    exit 0
+}
 
-$KEYSTORE_NAME = "upload-keystore.jks"
-$ALIAS = "upload"
-$VALIDITY_DAYS = 10000
+Write-Host "Generating keystore at $keystorePath..."
 
-if (Test-Path $KEYSTORE_NAME) {
-    Write-Host "Keystore $KEYSTORE_NAME already exists. Skipping generation." -ForegroundColor Yellow
+& $keyToolPath -genkey -v -keystore $keystorePath `
+    -alias upload `
+    -keyalg RSA `
+    -keysize 2048 `
+    -validity 10000 `
+    -storepass password123 `
+    -keypass password123 `
+    -dname "CN=CosmicForge, OU=Engineering, O=CosmicForge, L=Yangon, ST=Yangon, C=MM"
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Keystore generated successfully."
 } else {
-    Write-Host "Generating new keystore: $KEYSTORE_NAME..." -ForegroundColor Green
-    keytool -genkey -v -keystore $KEYSTORE_NAME -storetype JKS -keyalg RSA -keysize 2048 -validity $VALIDITY_DAYS -alias $ALIAS
-    
-    Write-Host "Keystore generated successfully!" -ForegroundColor Green
-    Write-Host "Please move $KEYSTORE_NAME to android/app/"
-    Write-Host "And update android/key.properties with your password."
+    Write-Host "Failed to generate keystore."
+    exit 1
 }

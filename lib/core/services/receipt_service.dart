@@ -8,8 +8,11 @@ import '../database/local_database.dart';
 import '../../core/services/store_service.dart';
 
 class ReceiptService {
-  final BlueThermalPrinter _printer = BlueThermalPrinter.instance;
+  final BlueThermalPrinter _printer;
   final ScreenshotController _screenshotController = ScreenshotController();
+
+  ReceiptService({BlueThermalPrinter? printer})
+      : _printer = printer ?? BlueThermalPrinter.instance;
 
   Future<List<BluetoothDevice>> getBondedDevices() async {
     return await _printer.getBondedDevices();

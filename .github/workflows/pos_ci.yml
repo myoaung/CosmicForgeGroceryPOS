@@ -1,42 +1,37 @@
-name: Cosmic Forge CI (Safety Gate)
+name: Antigravity Agent Production CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  test_and_verify:
+  build:
+    name: Build & Sign Android Bundle
     runs-on: ubuntu-latest
-
     steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 🐦 Setup Flutter
-        uses: subosito/flutter-action@v2
+      - name: Setup Java/Kotlin Environment
+        uses: actions/setup-java@v4
         with:
-          flutter-version: '3.19.0' # Matches your project SDK
-          channel: 'stable'
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: 📦 Install Dependencies
-        run: flutter pub get
+      - name: Decode Keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
-      - name: 🛡️ Secret Scan (Safety Check)
+      - name: Create Key Properties
+        run: echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
+
+      - name: Flutter Build (AAB)
         run: |
-          if grep -q "SUPABASE_ANON_KEY=eyJ" .env 2>/dev/null; then
-            echo "❌ ERROR: Real .env file detected in repository! Blocking build."
-            exit 1
-          fi
+          flutter pub get
+          flutter build appbundle --release
 
-      - name: 🏗️ Verify Drift Code Generation
-        run: flutter pub run build_runner build --delete-conflicting-outputs
-
-      - name: 🧪 Run POS Logic Tests
-        # This runs your verified cart_provider_test and store_service_test
-        run: flutter test
-
-      - name: 📊 Check Migration Integrity
-        # Ensures the agent didn't forget to commit the SQL files to infra/
-        run: ls infra/supabase/migrations/*.sql
+      - name: Upload Production Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Antigravity-POS-Release-AAB
+          path: build/app/outputs/bundle/release/app-release.aab

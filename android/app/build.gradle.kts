@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("com.android.application")
@@ -19,7 +20,12 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        freeCompilerArgs += listOf("-Xjvm-default=all")
+        jvmTarget = "17"
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     val keystoreProperties = Properties()
@@ -30,10 +36,16 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
+            val signingProps = Properties()
+            val signingPropsFile = rootProject.file("key.properties")
+            if (signingPropsFile.exists()) {
+                signingProps.load(FileInputStream(signingPropsFile))
+            }
+
+            keyAlias = signingProps["keyAlias"] as String
+            keyPassword = signingProps["keyPassword"] as String
+            storeFile = if (signingProps["storeFile"] != null) file(signingProps["storeFile"] as String) else null
+            storePassword = signingProps["storePassword"] as String
         }
     }
 
@@ -59,6 +71,10 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 

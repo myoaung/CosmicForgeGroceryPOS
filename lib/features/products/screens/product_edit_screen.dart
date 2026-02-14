@@ -7,16 +7,16 @@ import 'package:grocery/core/database/local_database.dart';
 import 'package:grocery/features/products/providers/product_provider.dart';
 import 'package:grocery/core/services/supabase_storage_service.dart';
 import 'package:grocery/core/services/store_service.dart'; // For audit
-import 'package:grocery/core/providers/database_provider.dart'; // If needed directly
+import 'package:grocery/core/providers/store_provider.dart';
+import 'package:grocery/core/providers/database_provider.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:supabase_flutter/supabase_flutter.dart'; // For accessing client
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:grocery/features/products/widgets/shopify_upload_progress.dart';
 import 'package:grocery/core/providers/sync_provider.dart';
 
 // Provider for Storage Service
 final storageServiceProvider = Provider((ref) => SupabaseStorageService(Supabase.instance.client));
-final storeServiceProvider = Provider((ref) => StoreService()); // Assuming simple init or locate actual file
 
 class ProductEditScreen extends ConsumerStatefulWidget {
   final Product? product;
