@@ -57,7 +57,9 @@ class LicenseModel {
   // ---------------------------------------------------------------------------
 
   /// Canonical payload string used for HMAC computation.
-  String _canonicalPayload() =>
+  ///
+  /// Format: `"licenseId|tenantId|expiryDate(UTC ISO-8601)|deviceLimit"`
+  String canonicalPayload() =>
       '$licenseId|$tenantId|${expiryDate.toUtc().toIso8601String()}|$deviceLimit';
 
   /// Generates an HMAC-SHA256 signature for the given [secretKey].
@@ -75,14 +77,13 @@ class LicenseModel {
   }
 
   /// Verifies [digitalSignature] against the provided [secretKey].
+  ///
+  /// Uses [canonicalPayload] to derive the expected HMAC and performs a
+  /// constant-time comparison to prevent timing attacks.
   bool verifySignature(String secretKey) {
-    final expected = generateSignature(
-      licenseId: licenseId,
-      tenantId: tenantId,
-      expiryDate: expiryDate,
-      deviceLimit: deviceLimit,
-      secretKey: secretKey,
-    );
+    final hmac = Hmac(sha256, utf8.encode(secretKey));
+    final expected =
+        hmac.convert(utf8.encode(canonicalPayload())).toString();
     // Constant-time comparison to prevent timing attacks.
     if (expected.length != digitalSignature.length) return false;
     var result = 0;

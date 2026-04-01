@@ -35,11 +35,11 @@ class LicenseStatusScreen extends StatelessWidget {
         backgroundColor: _LicenseColors.navy,
         appBar: AppBar(
           backgroundColor: _LicenseColors.navyLight,
-          title: Row(
+          title: const Row(
             children: [
               Icon(Icons.verified_user_rounded,
                   color: _LicenseColors.silver, size: 20),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Text(
                 'SOFTWARE LICENSE',
                 style: TextStyle(
@@ -60,13 +60,13 @@ class LicenseStatusScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNoLicense() => Center(
+  Widget _buildNoLicense() => const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.lock_outline_rounded,
                 size: 64, color: _LicenseColors.silverDark),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               'No License Found',
               style: TextStyle(
@@ -75,7 +75,7 @@ class LicenseStatusScreen extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Contact your Cosmic Forge administrator.',
               style: TextStyle(color: _LicenseColors.silverDark, fontSize: 13),
@@ -134,7 +134,7 @@ class LicenseStatusScreen extends StatelessWidget {
             Center(
               child: Text(
                 '$daysLeft days remaining',
-                style: TextStyle(
+                style: const TextStyle(
                   color: _LicenseColors.silverDark,
                   fontSize: 12,
                 ),
@@ -156,7 +156,7 @@ class LicenseStatusScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionHeader(label: 'LICENSEE'),
+                const _SectionHeader(label: 'LICENSEE'),
                 const SizedBox(height: 12),
                 _LicenseRow(
                   icon: Icons.business_rounded,
@@ -176,7 +176,7 @@ class LicenseStatusScreen extends StatelessWidget {
                   monospace: true,
                 ),
                 const SizedBox(height: 20),
-                _SectionHeader(label: 'ENTITLEMENTS'),
+                const _SectionHeader(label: 'ENTITLEMENTS'),
                 const SizedBox(height: 12),
                 _LicenseRow(
                   icon: Icons.devices_rounded,
@@ -195,7 +195,7 @@ class LicenseStatusScreen extends StatelessWidget {
                   valueColor: isValid ? null : _LicenseColors.expiredRed,
                 ),
                 const SizedBox(height: 20),
-                _SectionHeader(label: 'INTEGRITY'),
+                const _SectionHeader(label: 'INTEGRITY'),
                 const SizedBox(height: 12),
                 _LicenseRow(
                   icon: Icons.key_rounded,
@@ -224,7 +224,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         label,
-        style: TextStyle(
+        style: const TextStyle(
           color: _LicenseColors.silverDark,
           fontSize: 11,
           fontWeight: FontWeight.w700,
@@ -261,7 +261,7 @@ class _LicenseRow extends StatelessWidget {
             width: 100,
             child: Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 color: _LicenseColors.silver,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,

@@ -15,7 +15,7 @@ void main() {
   const tenantId = 'tenant-aaaa-0001';
   final closedAt = DateTime.utc(2026, 4, 1, 17, 0, 0);
 
-  EodReportModel _buildFromAmounts(
+  EodReportModel buildFromAmounts(
     List<double> amounts, {
     double cashActual = 0,
   }) =>
@@ -34,7 +34,7 @@ void main() {
     // Each sub-test validates a specific midpoint scenario.
 
     test('1a: No rounding when all amounts are exact multiples of 5', () {
-      final report = _buildFromAmounts([1000.0, 2500.0, 750.0]);
+      final report = buildFromAmounts([1000.0, 2500.0, 750.0]);
       // 1000 → 1000, 2500 → 2500, 750 → 750 (all exact multiples)
       expect(report.roundingAdjustment, closeTo(0.0, 0.01),
           reason: 'No rounding loss when amounts are already multiples of 5.');
@@ -47,7 +47,7 @@ void main() {
       // roundingAdj = 1233 - 1235 = -2 (rounded is larger; customer overpays by 2).
       // but for 1231: roundToNearest5(1231) = 1230. raw=1231, rounded=1230.
       // roundingAdj = 1231 - 1230 = +1 (raw > rounded; store collects 1 less).
-      final report = _buildFromAmounts([1231.0, 1236.0]);
+      final report = buildFromAmounts([1231.0, 1236.0]);
       // 1231 → 1230 (raw - rounded = +1)
       // 1236 → 1235 (raw - rounded = +1)
       // total roundingAdj = 2.0
@@ -59,7 +59,7 @@ void main() {
     test('1c: Negative rounding adjustment (rounded > raw)', () {
       // 1233 → 1235 (raw 1233, rounds UP to 1235; store collects 2 MORE).
       // roundingAdj = 1233 - 1235 = -2.0
-      final report = _buildFromAmounts([1233.0]);
+      final report = buildFromAmounts([1233.0]);
       expect(report.roundingAdjustment, closeTo(-2.0, 0.01),
           reason: '1233 rounds UP to 1235; rounding adj = 1233 - 1235 = -2.');
     });
@@ -68,7 +68,7 @@ void main() {
       // totalSales = 1235 (1233 → 1235), roundingAdj = -2.0
       // cashActual = 1235, netCash = 1235 - (-2) = 1237
       // roundMm100(1237) = 1200 (1237 is below midpoint 1250)
-      final report = _buildFromAmounts([1233.0], cashActual: 1235.0);
+      final report = buildFromAmounts([1233.0], cashActual: 1235.0);
       expect(report.bankTransferReady, roundToNearest100(report.netCash));
       expect(report.bankTransferReady, 1200,
           reason: 'netCash=1237 → nearest 100 = 1200.');
@@ -78,7 +78,7 @@ void main() {
       // We need netCash = 1250 exactly.
       // cashActual = 1252, roundingAdj = 1250 - 1252 = -2 → netCash = 1252-(-2)=1254? No.
       // Simpler: use exact multiples so roundingAdj = 0, cashActual = 1250.
-      final report = _buildFromAmounts([1250.0], cashActual: 1250.0);
+      final report = buildFromAmounts([1250.0], cashActual: 1250.0);
       // roundMm100(1250) = 1300 (midpoint rounds up in Dart's rounding)
       expect(report.bankTransferReady, 1300,
           reason: 'netCash=1250 is the midpoint; rounds up to 1300.');
@@ -95,13 +95,13 @@ void main() {
       const amounts = [1231.0, 1233.0, 1236.0, 1238.0, 1250.0];
       // 1231→1230 (+1), 1233→1235 (-2), 1236→1235 (+1), 1238→1240 (-2), 1250→1250 (0)
       // Total adjustment = 1 - 2 + 1 - 2 + 0 = -2
-      final report = _buildFromAmounts(amounts);
+      final report = buildFromAmounts(amounts);
       expect(report.roundingAdjustment, closeTo(-2.0, 0.01));
     });
 
     test('1h: isBalanced true when discrepancy <= 50 Kyat', () {
       // cashExpected = 1250, cashActual = 1295 → discrepancy = +45 → balanced
-      final report = _buildFromAmounts([1250.0], cashActual: 1295.0);
+      final report = buildFromAmounts([1250.0], cashActual: 1295.0);
       expect(report.discrepancy, closeTo(45.0, 0.01));
       expect(report.isBalanced, isTrue);
     });
@@ -109,7 +109,7 @@ void main() {
     test('1i: isBalanced false when discrepancy > 50 Kyat', () {
       // cashExpected = 1250, cashActual = 1200 → discrepancy = -50 is boundary
       // cashActual = 1199 → discrepancy = -51 → not balanced
-      final report = _buildFromAmounts([1250.0], cashActual: 1199.0);
+      final report = buildFromAmounts([1250.0], cashActual: 1199.0);
       expect(report.discrepancy, closeTo(-51.0, 0.01));
       expect(report.isBalanced, isFalse);
     });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grocery/core/localization/mmk_rounding.dart';
 import 'package:grocery/core/providers/sync_provider.dart';
 import 'package:grocery/features/licensing/data/models/license_model.dart';
 import 'package:grocery/features/licensing/presentation/screens/license_status_screen.dart';
@@ -63,7 +64,6 @@ class _EodClosureScreenState extends ConsumerState<EodClosureScreen> {
   int _currentStep = 0;
   double? _cashActual;
   String? _operatorNotes;
-  EodReportModel? _report;
 
   static const _totalSteps = 3; // Steps 1–3 (0 = license gate, shown separately)
 
@@ -139,10 +139,10 @@ class _EodClosureScreenState extends ConsumerState<EodClosureScreen> {
                   onPressed: _back,
                 )
               : null,
-          title: Row(
+          title: const Row(
             children: [
               Icon(Icons.point_of_sale_rounded, color: _Clr.silver, size: 18),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Text(
                 'CLOSE REGISTER',
                 style: TextStyle(
@@ -186,11 +186,8 @@ class _EodClosureScreenState extends ConsumerState<EodClosureScreen> {
               report: _buildReport(syncState),
               syncState: syncState,
               canFinalize: _canFinalize(syncState),
-              onFinalize: () {
-                final report = _buildReport(syncState);
-                setState(() => _report = report);
-                widget.onEodComplete?.call(report);
-              },
+              onFinalize: () =>
+                  widget.onEodComplete?.call(_buildReport(syncState)),
               onBack: _back,
             ),
           ],
@@ -232,7 +229,7 @@ class _Step1SalesSummary extends StatelessWidget {
             ('Tax Collected', '${taxCollected.toStringAsFixed(0)} Ks'),
           ]),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'The "Expected Cash" in the next step is the 5-Kyat rounded total.',
             style: TextStyle(fontSize: 11, color: _Clr.silverDark),
             textAlign: TextAlign.center,
@@ -280,23 +277,23 @@ class _Step2CashCountState extends State<_Step2CashCount> {
               style: const TextStyle(color: Colors.white, fontSize: 22),
               decoration: InputDecoration(
                 labelText: 'Physical Cash Count (Ks)',
-                labelStyle: TextStyle(color: _Clr.silver),
+                labelStyle: const TextStyle(color: _Clr.silver),
                 suffixText: 'Ks',
-                suffixStyle: TextStyle(color: _Clr.silver),
+                suffixStyle: const TextStyle(color: _Clr.silver),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: _Clr.silverDark),
+                  borderSide: const BorderSide(color: _Clr.silverDark),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: _Clr.emerald, width: 2),
+                  borderSide: const BorderSide(color: _Clr.emerald, width: 2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 errorBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: _Clr.red),
+                  borderSide: const BorderSide(color: _Clr.red),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 focusedErrorBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: _Clr.red, width: 2),
+                  borderSide: const BorderSide(color: _Clr.red, width: 2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
@@ -318,13 +315,13 @@ class _Step2CashCountState extends State<_Step2CashCount> {
               style: const TextStyle(color: Colors.white70, fontSize: 14),
               decoration: InputDecoration(
                 labelText: 'Operator Notes (optional)',
-                labelStyle: TextStyle(color: _Clr.silverDark),
+                labelStyle: const TextStyle(color: _Clr.silverDark),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: _Clr.silverDark.withAlpha(80)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: _Clr.silver),
+                  borderSide: const BorderSide(color: _Clr.silver),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
@@ -428,14 +425,14 @@ class _Step3Confirmation extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.block_rounded, color: _Clr.red, size: 18),
+                  const Icon(Icons.block_rounded, color: _Clr.red, size: 18),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'EOD finalization is blocked. '
                       'A ${syncState.status.name} error was detected. '
                       'Contact your administrator before closing.',
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: _Clr.red, fontSize: 12),
                     ),
                   ),
@@ -451,7 +448,7 @@ class _Step3Confirmation extends StatelessWidget {
               color: _Clr.emerald,
               onTap: onFinalize,
             )
-          : _NavButton(
+          : const _NavButton(
               label: 'Blocked — Fix Sync Error',
               color: _Clr.red,
               onTap: null, // disabled
@@ -484,7 +481,7 @@ class _WizardPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(stepLabel,
-              style: TextStyle(
+              style: const TextStyle(
                   color: _Clr.silverDark,
                   fontSize: 11,
                   letterSpacing: 1.5)),
@@ -497,7 +494,7 @@ class _WizardPage extends StatelessWidget {
           const SizedBox(height: 4),
           Text(subtitle,
               style:
-                  TextStyle(color: _Clr.silverDark, fontSize: 13)),
+                  const TextStyle(color: _Clr.silverDark, fontSize: 13)),
           const SizedBox(height: 24),
           content,
           const SizedBox(height: 32),
@@ -530,7 +527,7 @@ class _SummaryCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(label,
-                    style: TextStyle(color: _Clr.silverDark, fontSize: 13)),
+                    style: const TextStyle(color: _Clr.silverDark, fontSize: 13)),
                 Text(value,
                     style: const TextStyle(
                         color: Colors.white,
@@ -626,7 +623,4 @@ class _StepPip extends StatelessWidget {
   }
 }
 
-// ── Extension needed locally since we import mmk_rounding separately ─────────
-extension _MmkDouble on double {
-  int get roundMm => ((this / 5.0).round() * 5);
-}
+

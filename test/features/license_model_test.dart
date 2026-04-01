@@ -20,8 +20,8 @@ void main() {
   final expiryFuture   = DateTime.utc(2099, 12, 31); // far future — valid
   final expiryPast     = DateTime.utc(2020,  1,  1); // past — expired
 
-  // Helper: build a LicenseModel with a proper signature.
-  LicenseModel _build({
+  // Helper to build a LicenseModel quickly in tests.
+  LicenseModel build({
     required DateTime expiry,
     String? overrideSignature,
   }) {
@@ -63,12 +63,12 @@ void main() {
     });
 
     test('verifySignature returns true for a valid license', () {
-      final lic = _build(expiry: expiryFuture);
+      final lic = build(expiry: expiryFuture);
       expect(lic.verifySignature(testKey), isTrue);
     });
 
     test('verifySignature returns false for a tampered signature', () {
-      final lic = _build(
+      final lic = build(
         expiry: expiryFuture,
         overrideSignature: 'deadbeef' * 8, // 64 chars but wrong value
       );
@@ -76,7 +76,7 @@ void main() {
     });
 
     test('verifySignature returns false when wrong key is used', () {
-      final lic = _build(expiry: expiryFuture);
+      final lic = build(expiry: expiryFuture);
       expect(lic.verifySignature('wrong-key'), isFalse);
     });
 
@@ -120,26 +120,26 @@ void main() {
   // ── Expiry / isValid ─────────────────────────────────────────────────────────
   group('Expiry & Validity', () {
     test('isValid returns true for a future expiry date', () {
-      expect(_build(expiry: expiryFuture).isValid, isTrue);
+      expect(build(expiry: expiryFuture).isValid, isTrue);
     });
 
     test('isValid returns false for a past expiry date', () {
-      expect(_build(expiry: expiryPast).isValid, isFalse);
+      expect(build(expiry: expiryPast).isValid, isFalse);
     });
 
     test('daysUntilExpiry is positive for future license', () {
-      expect(_build(expiry: expiryFuture).daysUntilExpiry, greaterThan(0));
+      expect(build(expiry: expiryFuture).daysUntilExpiry, greaterThan(0));
     });
 
     test('daysUntilExpiry is negative for expired license', () {
-      expect(_build(expiry: expiryPast).daysUntilExpiry, lessThan(0));
+      expect(build(expiry: expiryPast).daysUntilExpiry, lessThan(0));
     });
   });
 
   // ── JSON Round-Trip ──────────────────────────────────────────────────────────
   group('JSON serialization', () {
     test('toJson / fromJson round-trip preserves all fields', () {
-      final original = _build(expiry: expiryFuture);
+      final original = build(expiry: expiryFuture);
       final decoded  = LicenseModel.fromJson(original.toJson());
 
       expect(decoded.licenseId,        equals(original.licenseId));
@@ -152,7 +152,7 @@ void main() {
     });
 
     test('fromJson-decoded model passes signature verification', () {
-      final original = _build(expiry: expiryFuture);
+      final original = build(expiry: expiryFuture);
       final decoded  = LicenseModel.fromJson(original.toJson());
 
       expect(decoded.verifySignature(testKey), isTrue,
@@ -160,7 +160,7 @@ void main() {
     });
 
     test('fromJson-decoded expired model is still correctly identified', () {
-      final expired = _build(expiry: expiryPast);
+      final expired = build(expiry: expiryPast);
       final decoded = LicenseModel.fromJson(expired.toJson());
 
       expect(decoded.isValid, isFalse);

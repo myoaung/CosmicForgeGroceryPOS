@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:image/image.dart' as img;
 import '../../features/receipt/widgets/receipt_layout.dart';
+import '../../features/reports/data/models/eod_report_model.dart';
 import '../database/local_database.dart';
 import '../../core/services/store_service.dart';
 import 'observability_service.dart';
@@ -174,7 +175,7 @@ class ReceiptService {
   }
 
   static String _formatDateTime(DateTime dt) {
-    final pad = (int n) => n.toString().padLeft(2, '0');
+    String pad(int n) => n.toString().padLeft(2, '0');
     return '${dt.year}-${pad(dt.month)}-${pad(dt.day)} '
         '${pad(dt.hour)}:${pad(dt.minute)}';
   }
@@ -258,7 +259,7 @@ class _EodSummaryReceipt extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          Center(
+          const Center(
             child: Text('END OF DAY SUMMARY', style: _mono),
           ),
           Center(child: Text(closedAt, style: _monoSm)),
@@ -307,7 +308,7 @@ class _EodSummaryReceipt extends StatelessWidget {
 
           if (operatorNotes != null && operatorNotes!.isNotEmpty) ...[
             _divider(),
-            Text('Notes:', style: _monoSm),
+            const Text('Notes:', style: _monoSm),
             Text(operatorNotes!, style: _monoSm),
           ],
 
@@ -319,7 +320,7 @@ class _EodSummaryReceipt extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Center(child: Text('*** KEEP FOR YOUR RECORDS ***', style: _monoSm)),
+          const Center(child: Text('*** KEEP FOR YOUR RECORDS ***', style: _monoSm)),
         ],
       ),
     );

@@ -64,3 +64,16 @@ secrets_for_github.txt
 *.env
 secrets/*.txt
 secrets/*.env
+
+# Node / JS tooling (Supabase CLI deps etc.)
+node_modules/
+package-lock.json
+package.json
+
+# Test & analyze output files
+test_out.txt
+test_out_utf8.txt
+analyze_output*.txt
+coverage_output*.txt
+*.utf8
+test_output.txt
