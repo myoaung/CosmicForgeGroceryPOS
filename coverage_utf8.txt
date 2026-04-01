@@ -1,0 +1,89 @@
+﻿00:00 +0: loading D:/GitHub/Grocery POS/test/chaos/checkout_chaos_test.dart
+00:00 +0: D:/GitHub/Grocery POS/test/chaos/checkout_chaos_test.dart: Checkout chaos scenarios mid-checkout crash rolls back header and items
+00:00 +1: D:/GitHub/Grocery POS/test/chaos/checkout_chaos_test.dart: Checkout chaos scenarios double-pay with same UUID does not duplicate records
+00:00 +2: D:/GitHub/Grocery POS/test/chaos/database_corruption_test.dart: recovers from corrupted SQLite using VACUUM INTO backup
+BackupService: Database backed up to C:\Users\MYOAUN~1\AppData\Local\Temp\db_corrupt_test1ede106e\backups\grocery_pos_backup_20260313_1130.sqlite
+BackupService: Database restored from C:\Users\MYOAUN~1\AppData\Local\Temp\db_corrupt_test1ede106e\backups\grocery_pos_backup_20260313_1130.sqlite
+WARNING (drift): It looks like you've created the database class LocalDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new _$LocalDatabase (package:grocery/core/database/local_database.g.dart:3227:38)
+#4      new LocalDatabase.forTesting (package:grocery/core/database/local_database.dart)
+#5      main.<anonymous closure> (file:///D:/GitHub/Grocery%20POS/test/chaos/database_corruption_test.dart:52:36)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:242:9)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:240:7)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:282:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:00 +3: D:/GitHub/Grocery POS/test/chaos/sync_resilience_test.dart: Sync resilience with latency + flapping network offline first -> error, then recovers when online with latency
+[OBS][event] sync_service_started 
+[OBS][metric] sync.failure +1 status=error
+[OBS][event] sync_error transaction_id=t1 status=error error=Exception: offline
+00:01 +4: D:/GitHub/Grocery POS/test/chaos/sync_resilience_test.dart: Sync resilience with latency + flapping network offline first -> error, then recovers when online with latency
+00:01 +5: D:/GitHub/Grocery POS/test/chaos/sync_resilience_test.dart: Sync resilience with latency + flapping network offline first -> error, then recovers when online with latency
+[OBS][metric] sync.success +1 
+[OBS][latency] sync.transaction.latency=310ms 
+00:01 +6: loading D:/GitHub/Grocery POS/test/core/localization/mmk_rounding_test.dart
+00:03 +6: D:/GitHub/Grocery POS/test/core/localization/mmk_rounding_test.dart: MMK Cash Rounding Logic Rounds to nearest 5 Kyat
+00:03 +7: D:/GitHub/Grocery POS/test/core/localization/mmk_rounding_test.dart: MMK Cash Rounding Logic Extension works on double
+00:03 +8: D:/GitHub/Grocery POS/test/core/localization/mmk_rounding_test.dart: MMK Cash Rounding Logic Extension works on int
+00:04 +9: D:/GitHub/Grocery POS/test/core/repositories/product_repository_tenant_isolation_test.dart: watchAll returns only products in requested tenant/store scope
+00:04 +10: D:/GitHub/Grocery POS/test/core/repositories/product_repository_tenant_isolation_test.dart: delete does not remove product outside tenant scope
+00:04 +11: D:/GitHub/Grocery POS/test/core/security/device_guard_test.dart: rejects device when tenant/store does not match
+00:04 +12: D:/GitHub/Grocery POS/test/core/security/device_guard_test.dart: rejects access when network verification fails
+00:04 +13: D:/GitHub/Grocery POS/test/core/security/device_guard_test.dart: allows access for registered active device with valid network/store
+00:04 +14: D:/GitHub/Grocery POS/test/core/security/device_guard_test.dart: inactive device registration is rejected
+00:05 +15: D:/GitHub/Grocery POS/test/core/security/secure_storage_service_test.dart: getOrCreateDatabaseKey persists generated key
+00:05 +16: D:/GitHub/Grocery POS/test/core/security/secure_storage_service_test.dart: clearSession removes persisted tokens
+00:06 +17: D:/GitHub/Grocery POS/test/core/security/security_guard_test.dart: SecurityGuard Haversine: 0 distance for same point
+00:06 +18: D:/GitHub/Grocery POS/test/core/security/security_guard_test.dart: SecurityGuard Haversine: Within 100m
+00:06 +19: D:/GitHub/Grocery POS/test/core/security/security_guard_test.dart: SecurityGuard Haversine: Outside 100m
+00:06 +20: D:/GitHub/Grocery POS/test/core/security/security_guard_test.dart: SecurityGuard BSSID Check
+00:06 +21: D:/GitHub/Grocery POS/test/core/security/security_guard_test.dart: SecurityGuard validateSession delegates to session validator
+00:06 +22: D:/GitHub/Grocery POS/test/core/security/security_guard_test.dart: SecurityGuard verifyDevice validates bssid and ip range
+00:06 +23: D:/GitHub/Grocery POS/test/core/security/security_guard_test.dart: SecurityGuard verifyStoreAccess uses geofence + bssid
+00:06 +24: loading D:/GitHub/Grocery POS/test/core/services/backup_restore_test.dart
+00:07 +24: D:/GitHub/Grocery POS/test/core/services/backup_restore_test.dart: backup integrity check and restore roundtrip
+BackupService: Database backed up to C:\Users\MYOAUN~1\AppData\Local\Temp\backup_restore_test1355b6da\backups\grocery_pos_backup_20260313_1130.sqlite
+BackupService: Database restored from C:\Users\MYOAUN~1\AppData\Local\Temp\backup_restore_test1355b6da\backups\grocery_pos_backup_20260313_1130.sqlite
+00:08 +25: D:/GitHub/Grocery POS/test/core/services/backup_service_test.dart: backupDatabase creates a backup file when db.sqlite exists
+BackupService: Database backed up to C:\Users\MYOAUN~1\AppData\Local\Temp\backup_test_1e4d6f8\backups\grocery_pos_backup_20260313_1130.sqlite
+00:09 +26: D:/GitHub/Grocery POS/test/core/services/backup_service_test.dart: pruneOldBackups removes oldest files when count > 10
+00:09 +27: D:/GitHub/Grocery POS/test/core/services/backup_service_test.dart: pruneOldBackups removes oldest files when count > 10
+00:09 +28: D:/GitHub/Grocery POS/test/core/services/backup_service_test.dart: pruneOldBackups removes oldest files when count > 10
+BackupService: Found 12 backups.
+BackupService: Pruning grocery_pos_backup_20240101_0001.sqlite (Exceeds count limit)
+BackupService: Pruning grocery_pos_backup_20240101_0000.sqlite (Exceeds count limit)
+00:09 +29: D:/GitHub/Grocery POS/test/core/services/receipt_service_test.dart: connects to device if not connected
+00:09 +30: D:/GitHub/Grocery POS/test/core/services/receipt_service_test.dart: does not reconnect if already connected
+00:10 +31: loading D:/GitHub/Grocery POS/test/core/services/store_service_rbac_test.dart
+00:11 +31: D:/GitHub/Grocery POS/test/core/services/store_service_rbac_test.dart: StoreService RBAC integration placeholders TODO: ensure tax overrides and store updates reject unauthorized roles
+  Skip: Requires Supabase RLS mock environment before executing.
+00:13 +31 ~1: D:/GitHub/Grocery POS/test/core/services/store_service_test.dart: StoreService fetchStores returns mock data (when Supabase not init)
+[OBS][event] store_fetch_error_fallback error='package:supabase_flutter/src/supabase.dart': Failed assertion: line 45 pos 7: '_instance._isInitialized': You must initialize the supabase instance before calling Supabase.instance
+00:13 +32 ~1: D:/GitHub/Grocery POS/test/core/services/store_service_test.dart: StoreService setActiveStore ALLOWS switch if within 100m
+[OBS][event] audit_local_fallback event=store_switch tenant=tenant_1 store=test_store desc=Store switched to test_store
+00:13 +33 ~1: D:/GitHub/Grocery POS/test/core/services/store_service_test.dart: StoreService setActiveStore BLOCKS switch if outside 100m
+[OBS][event] store_security_verification_failed store=Test Store
+00:13 +34 ~1: D:/GitHub/Grocery POS/test/core/services/store_service_test.dart: StoreService updateTaxRate updates the rate (Mock Fallback)
+[OBS][event] store_fetch_error_fallback error='package:supabase_flutter/src/supabase.dart': Failed assertion: line 45 pos 7: '_instance._isInitialized': You must initialize the supabase instance before calling Supabase.instance
+[OBS][event] audit_local_fallback event=store_switch tenant=tenant_1 store=store_1 desc=Store switched to store_1
+[OBS][event] tax_rate_update_error_fallback error='package:supabase_flutter/src/supabase.dart': Failed assertion: line 45 pos 7: '_instance._isInitialized': You must initialize the supabase instance before calling Supabase.instance
+00:13 +35 ~1: D:/GitHub/Grocery POS/test/core/services/sync_service_integration_test.dart: SyncService integration placeholders TODO: verify tenant/store ID propagation into sync queue payloads
+  Skip: Requires Supabase emulator or mocks before running integration validation.
+00:15 +35 ~2: D:/GitHub/Grocery POS/test/core/services/sync_service_test.dart: syncPendingTransactions is idempotent
+[OBS][event] sync_service_started 
+[OBS][metric] sync.success +1 
+[OBS][latency] sync.transaction.latency=20ms 
+00:15 +36 ~2: D:/GitHub/Grocery POS/test/core/services/sync_service_test.dart: conflict sets syncStatus to conflict
+[OBS][event] sync_service_started 
+[OBS][metric] sync.failure +1 status=conflict
+[OBS][event] sync_error transaction_id=t_conflict status=conflict error=ConflictException: duplicate
+00:16 +37 ~2: D:/GitHub/Grocery POS/test/core/sync/sync_queue_worker_test.dart: enqueue writes pending sync queue item
+00:16 +38 ~2: D:/GitHub/Grocery POS/test/core/sync/sync_queue_worker_test.dart: failed remote sync increments retry_count and marks failed

@@ -1,36 +1,41 @@
-import 'dart:typed_data';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:image/image.dart' as img;
 import '../../features/receipt/widgets/receipt_layout.dart';
 import '../database/local_database.dart';
 import '../../core/services/store_service.dart';
+import 'observability_service.dart';
 
 class ReceiptService {
   final BlueThermalPrinter _printer;
   final ScreenshotController _screenshotController = ScreenshotController();
+  final ObservabilityService _obs = const ObservabilityService();
 
   ReceiptService({BlueThermalPrinter? printer})
       : _printer = printer ?? BlueThermalPrinter.instance;
 
   Future<List<BluetoothDevice>> getBondedDevices() async {
+    if (kIsWeb) return const [];
     return await _printer.getBondedDevices();
   }
 
   Future<bool> connect(BluetoothDevice device) async {
+    if (kIsWeb) return false;
     try {
       if ((await _printer.isConnected) == true) {
         return true;
       }
       return await _printer.connect(device) ?? false;
     } catch (e) {
-      print('Printer Connection Error: $e');
+      _obs.recordEvent('printer_connection_error', metadata: {'error': e.toString()});
       return false;
     }
   }
   
   Future<void> disconnect() async {
+    if (kIsWeb) return;
     if ((await _printer.isConnected) == true) {
       await _printer.disconnect();
     }
@@ -38,15 +43,19 @@ class ReceiptService {
 
   /// Prints a widget as a bitmap image to ensure font compatibility
   Future<void> printReceiptFromWidget(Widget widget, {required BluetoothDevice? device}) async {
+    if (kIsWeb) {
+      _obs.recordEvent('print_skipped_web');
+      return;
+    }
     if (device == null) {
-      print('No device selected for printing.');
+      _obs.recordEvent('print_no_device_selected');
       return;
     }
 
     if ((await _printer.isConnected) != true) {
       final connected = await connect(device);
       if (!connected) {
-        print('Could not connect to printer.');
+        _obs.recordEvent('print_connection_failed');
         return;
       }
     }
@@ -54,7 +63,7 @@ class ReceiptService {
     try {
       // 1. Capture Widget as Image (Uint8List)
       // Delay slightly to ensure widget is built if needed, though ScreenshotController usually handles it
-      final Uint8List? imageBytes = await _screenshotController.captureFromWidget(
+      final Uint8List imageBytes = await _screenshotController.captureFromWidget(
         Container(
           width: 384, // Standard 58mm width approx in pixels (may need tuning)
           color: Colors.white,
@@ -62,8 +71,6 @@ class ReceiptService {
         ),
         delay: const Duration(milliseconds: 50),
       );
-
-      if (imageBytes == null) return;
 
       // 2. Resize/Process Image for Printer (Optional but recommended)
       // BlueThermalPrinter might handle resizing, but resizing to width helps.
@@ -78,7 +85,7 @@ class ReceiptService {
         await _printer.paperCut();
       }
     } catch (e) {
-      print('Printing Error: $e');
+      _obs.recordEvent('print_error', metadata: {'error': e.toString()});
     }
   }
 
@@ -89,6 +96,10 @@ class ReceiptService {
     required BluetoothDevice? device,
     required StoreService storeService,
   }) async {
+    if (kIsWeb) {
+      _obs.recordEvent('print_skipped_web');
+      return;
+    }
     final receiptWidget = ReceiptLayout(
       transaction: transaction,
       items: items,

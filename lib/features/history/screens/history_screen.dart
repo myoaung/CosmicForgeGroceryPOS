@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/history_provider.dart';
+import 'package:grocery/core/repositories/history_repository.dart';
 
 class TransactionHistoryScreen extends ConsumerWidget {
   const TransactionHistoryScreen({super.key});
@@ -34,10 +35,10 @@ class TransactionHistoryScreen extends ConsumerWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: tx.isSynced ? Colors.green[100] : Colors.orange[100],
+                    backgroundColor: tx.syncStatus == 'synced' ? Colors.green[100] : Colors.orange[100],
                     child: Icon(
-                      tx.isSynced ? Icons.cloud_done : Icons.cloud_upload,
-                      color: tx.isSynced ? Colors.green : Colors.orange,
+                      tx.syncStatus == 'synced' ? Icons.cloud_done : Icons.cloud_upload,
+                      color: tx.syncStatus == 'synced' ? Colors.green : Colors.orange,
                     ),
                   ),
                   title: Text('Order #${tx.id.substring(0, 8)}...'),
@@ -94,9 +95,9 @@ class TransactionHistoryScreen extends ConsumerWidget {
                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     const Text('Status:'), 
                     Chip(
-                      label: Text(tx.isSynced ? 'Synced' : 'Pending'),
-                      backgroundColor: tx.isSynced ? Colors.green[100] : Colors.orange[100],
-                      labelStyle: TextStyle(color: tx.isSynced ? Colors.green[800] : Colors.orange[800]),
+                      label: Text(tx.syncStatus),
+                      backgroundColor: tx.syncStatus == 'synced' ? Colors.green[100] : Colors.orange[100],
+                      labelStyle: TextStyle(color: tx.syncStatus == 'synced' ? Colors.green[800] : Colors.orange[800]),
                       visualDensity: VisualDensity.compact,
                     )
                   ]),
@@ -112,7 +113,7 @@ class TransactionHistoryScreen extends ConsumerWidget {
                           contentPadding: EdgeInsets.zero,
                           title: Text(item.productName, style: const TextStyle(fontFamily: 'Pyidaungsu')), // Font support
                           subtitle: Text('${item.quantity} x ${item.unitPrice}'),
-                          trailing: Text('${(item.quantity * item.unitPrice).toStringAsFixed(0)}'),
+                          trailing: Text((item.quantity * item.unitPrice).toStringAsFixed(0)),
                         );
                       },
                     ),

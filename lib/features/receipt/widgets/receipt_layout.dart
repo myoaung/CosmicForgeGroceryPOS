@@ -42,7 +42,7 @@ class ReceiptLayout extends StatelessWidget {
               children: [
                 Expanded(flex: 3, child: Text(item.productName, style: const TextStyle(fontFamily: 'Pyidaungsu', fontSize: 14))),
                 Expanded(flex: 1, child: Text('${item.quantity.toInt()}x', textAlign: TextAlign.right, style: const TextStyle(fontSize: 14))),
-                Expanded(flex: 2, child: Text('${(item.quantity * item.unitPrice).toStringAsFixed(0)}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 14))),
+                Expanded(flex: 2, child: Text((item.quantity * item.unitPrice).toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(fontSize: 14))),
               ],
             ),
           ),
@@ -65,7 +65,7 @@ class ReceiptLayout extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: 14 * scale)),
-          Text('${amount.toStringAsFixed(0)}', style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: 14 * scale)),
+          Text(amount.toStringAsFixed(0), style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: 14 * scale)),
         ],
       ),
     );

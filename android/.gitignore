@@ -12,3 +12,11 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Block secret files
+secrets_for_github.txt
+*.secret
+*.secrets
+*.env
+secrets/*.txt
+secrets/*.env

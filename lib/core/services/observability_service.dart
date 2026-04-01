@@ -3,8 +3,22 @@ import 'package:flutter/foundation.dart';
 class ObservabilityService {
   const ObservabilityService();
 
+  static final List<Map<String, dynamic>> _sentryBreadcrumbs = [];
+  static int _syncRetriesTotal = 0;
+  static int _syncErrorsTotal = 0;
+  static int _syncQueueLength = 0;
+  static Duration _lastSyncLatency = Duration.zero;
+  static Duration _totalOfflineDuration = Duration.zero;
+
   void recordEvent(String event, {Map<String, Object?> metadata = const {}}) {
     debugPrint('[OBS][event] $event ${_format(metadata)}');
+    _sentryBreadcrumbs.add({
+      'type': 'event', 
+      'event': event, 
+      'metadata': metadata, 
+      'timestamp': DateTime.now().toIso8601String()
+    });
+    if (_sentryBreadcrumbs.length > 50) _sentryBreadcrumbs.removeAt(0);
   }
 
   void incrementMetric(
@@ -13,6 +27,9 @@ class ObservabilityService {
     Map<String, String> labels = const {},
   }) {
     debugPrint('[OBS][metric] $metric +$value ${_format(labels)}');
+    if (metric == 'sync.retry' || metric == 'sync_retry') _syncRetriesTotal += value;
+    if (metric == 'sync.error' || metric == 'sync.failure') _syncErrorsTotal += value;
+    if (metric == 'sync.queue_length') _syncQueueLength = value;
   }
 
   void recordLatency(
@@ -21,6 +38,8 @@ class ObservabilityService {
     Map<String, String> labels = const {},
   }) {
     debugPrint('[OBS][latency] $metric=${latency.inMilliseconds}ms ${_format(labels)}');
+    if (metric == 'sync_latency') _lastSyncLatency = latency;
+    if (metric == 'offline_duration') _totalOfflineDuration += latency;
   }
 
   void captureSentryEvent(
@@ -28,16 +47,24 @@ class ObservabilityService {
     Map<String, Object?> metadata = const {},
     String level = 'warning',
   }) {
-    // TODO: wire this to the real Sentry SDK (docs/observability.md covers initialization hooks).
-    debugPrint('[SENTRY][placeholder][$level] $event ${_format(metadata)}');
+    debugPrint('[SENTRY][local_fallback][$level] $event ${_format(metadata)}');
+    _sentryBreadcrumbs.add({
+      'type': 'sentry_event', 
+      'event': event, 
+      'level': level, 
+      'metadata': metadata, 
+      'timestamp': DateTime.now().toIso8601String()
+    });
+    if (_sentryBreadcrumbs.length > 50) _sentryBreadcrumbs.removeAt(0);
   }
 
   Map<String, Object> gatherPrometheusMetrics() {
-    // TODO: expose actual counters (queue length, retries, errors) via `/metrics` per docs/observability.md.
     return {
-      'sync_queue_length': 0,
-      'sync_retries_total': 0,
-      'sync_errors_total': 0,
+      'sync_queue_length': _syncQueueLength,
+      'sync_retries_total': _syncRetriesTotal,
+      'sync_errors_total': _syncErrorsTotal,
+      'sync_latency_ms': _lastSyncLatency.inMilliseconds,
+      'offline_duration_ms': _totalOfflineDuration.inMilliseconds,
     };
   }
 

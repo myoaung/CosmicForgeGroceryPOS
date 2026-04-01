@@ -49,4 +49,8 @@ class LocationService {
   Future<String?> getWifiBssid() async {
     return await _networkInfo.getWifiBSSID();
   }
+
+  Future<String?> getWifiIp() async {
+    return await _networkInfo.getWifiIP();
+  }
 }

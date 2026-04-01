@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:grocery/core/auth/session_context.dart';
 import 'package:grocery/core/services/store_service.dart';
 import 'package:grocery/core/models/store.dart';
 import 'package:grocery/core/services/location_service.dart';
@@ -24,13 +25,17 @@ Position getMockPosition(double lat, double lng) {
 class FakeLocationService extends LocationService {
   final double lat;
   final double lng;
+  final String bssid;
 
-  FakeLocationService(this.lat, this.lng);
+  FakeLocationService(this.lat, this.lng, {this.bssid = 'aa:bb:cc:dd:ee:ff'});
 
   @override
   Future<Position> getCurrentPosition() async {
     return getMockPosition(lat, lng);
   }
+
+  @override
+  Future<String?> getWifiBssid() async => bssid;
 }
 
 void main() {
@@ -90,7 +95,18 @@ void main() {
 
     test('updateTaxRate updates the rate (Mock Fallback)', () async {
       final locationService = FakeLocationService(16.8409, 96.1735);
-      final storeService = StoreService(locationService: locationService);
+      final storeService = StoreService(
+        locationService: locationService,
+        sessionContextResolver: () => const SessionContext(
+          isAuthenticated: true,
+          userId: 'test_user',
+          tenantId: 'tenant_1',
+          storeId: 'store_1',
+          role: UserRole.storeManager,
+          deviceId: 'dev1',
+          sessionId: 'sess1',
+        ),
+      );
       
       // First fetch to populate internal mock list
       final stores = await storeService.fetchStores();

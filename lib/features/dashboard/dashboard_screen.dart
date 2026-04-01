@@ -5,6 +5,7 @@ import '../history/screens/history_screen.dart';
 import '../reports/screens/daily_closing_screen.dart';
 import '../products/screens/product_list_screen.dart';
 import '../admin/screens/admin_dashboard_screen.dart';
+import '../auth/auth_provider.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,17 +21,19 @@ class DashboardScreen extends ConsumerWidget {
           const StoreSwitcher(),
           IconButton(
             icon: const Icon(Icons.history),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionHistoryScreen())),
+            onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const TransactionHistoryScreen())),
           ),
           IconButton(
             icon: const Icon(Icons.assessment),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DailyClosingScreen())),
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const DailyClosingScreen())),
           ),
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // Placeholder for settings
-            },
+            icon: const Icon(Icons.logout),
+            onPressed: () => ref.read(authStateProvider.notifier).logout(),
           ),
         ],
       ),
@@ -40,9 +43,10 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             const DrawerHeader(
               decoration: BoxDecoration(color: Colors.blue),
-              child: Text('POS Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
+              child: Text('POS Menu',
+                  style: TextStyle(color: Colors.white, fontSize: 24)),
             ),
-             ListTile(
+            ListTile(
               leading: const Icon(Icons.point_of_sale),
               title: const Text('POS Terminal'),
               onTap: () => Navigator.pop(context), // Already here
@@ -52,7 +56,10 @@ class DashboardScreen extends ConsumerWidget {
               title: const Text('Transaction History'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionHistoryScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const TransactionHistoryScreen()));
               },
             ),
             ListTile(
@@ -60,24 +67,34 @@ class DashboardScreen extends ConsumerWidget {
               title: const Text('Daily Closing Report'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const DailyClosingScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const DailyClosingScreen()));
               },
             ),
-             ListTile(
+            ListTile(
               leading: const Icon(Icons.inventory),
               title: const Text('Product Management'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductListScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const ProductListScreen()));
               },
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.admin_panel_settings, color: Colors.red),
+              leading:
+                  const Icon(Icons.admin_panel_settings, color: Colors.red),
               title: const Text('App Owner Dashboard'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const AdminDashboardScreen()));
               },
             ),
           ],

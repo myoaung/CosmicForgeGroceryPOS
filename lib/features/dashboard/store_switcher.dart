@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/store.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/providers/tax_provider.dart';
+import '../../core/providers/session_provider.dart';
 
 // Provider to fetch stores
 final storesListProvider = FutureProvider<List<Store>>((ref) async {
@@ -17,6 +18,7 @@ class StoreSwitcher extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeStore = ref.watch(activeStoreProvider);
     final storesListAsync = ref.watch(storesListProvider);
+    final session = ref.watch(sessionContextProvider).valueOrNull;
 
     return Card(
       margin: const EdgeInsets.all(8.0),
@@ -32,16 +34,51 @@ class StoreSwitcher extends ConsumerWidget {
             const SizedBox(height: 10),
             storesListAsync.when(
               data: (stores) {
+                if (stores.isEmpty) {
+                  return const Text(
+                      'No stores available for the current session.');
+                }
+
                 // Ensure activeStore is actually in the list (equality check)
                 // If activeStore is null, dropdown is null (prompt shown)
                 // If activeStore is set, we must find the matching item in 'stores' by ID
                 Store? dropdownValue;
                 if (activeStore != null) {
                   try {
-                    dropdownValue = stores.firstWhere((s) => s.id == activeStore.id);
+                    dropdownValue =
+                        stores.firstWhere((s) => s.id == activeStore.id);
                   } catch (e) {
                     // Active store ID not found in list??
-                    dropdownValue = null; 
+                    dropdownValue = null;
+                  }
+                }
+
+                final hasValidSession = session != null &&
+                    session.isAuthenticated &&
+                    !session.isExpired;
+                final scopedStoreId = hasValidSession ? session.storeId : null;
+                if (activeStore == null &&
+                    scopedStoreId != null &&
+                    scopedStoreId.isNotEmpty) {
+                  Store? scopedStore;
+                  for (final store in stores) {
+                    if (store.id == scopedStoreId) {
+                      scopedStore = store;
+                      break;
+                    }
+                  }
+                  if (scopedStore != null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      if (!context.mounted) return;
+                      if (ref.read(activeStoreProvider) != null) return;
+                      final storeService = ref.read(storeServiceProvider);
+                      final allowed =
+                          await storeService.setActiveStore(scopedStore!);
+                      if (!context.mounted || !allowed) return;
+                      ref.read(activeStoreProvider.notifier).state =
+                          storeService.activeStore;
+                    });
+                    dropdownValue = scopedStore;
                   }
                 }
 
@@ -55,9 +92,24 @@ class StoreSwitcher extends ConsumerWidget {
                       child: Text(store.storeName),
                     );
                   }).toList(),
-                  onChanged: (Store? newValue) {
+                  onChanged: (Store? newValue) async {
                     if (newValue != null) {
-                      ref.read(activeStoreProvider.notifier).state = newValue;
+                      final storeService = ref.read(storeServiceProvider);
+                      final allowed =
+                          await storeService.setActiveStore(newValue);
+                      if (!context.mounted) return;
+                      if (allowed) {
+                        ref.read(activeStoreProvider.notifier).state =
+                            storeService.activeStore;
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Store switch blocked by security policy.'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
                     }
                   },
                 );
@@ -71,7 +123,8 @@ class StoreSwitcher extends ConsumerWidget {
                 spacing: 8.0,
                 children: [
                   _SecurityBadge(
-                    label: 'GPS: ${activeStore.isGeofenceEnabled ? "ON" : "OFF"}',
+                    label:
+                        'GPS: ${activeStore.isGeofenceEnabled ? "ON" : "OFF"}',
                     isValid: activeStore.isGeofenceEnabled,
                     color: Colors.green,
                   ),
@@ -80,7 +133,7 @@ class StoreSwitcher extends ConsumerWidget {
                     isValid: activeStore.authorizedBssid != null,
                     color: Colors.blue,
                   ),
-                   _SecurityBadge(
+                  _SecurityBadge(
                     label: 'Tax: ${activeStore.taxRate}%',
                     isValid: true,
                     color: Colors.orange,
@@ -125,14 +178,15 @@ class StoreSwitcher extends ConsumerWidget {
             TextButton(
               onPressed: () async {
                 final newRate = double.tryParse(controller.text) ?? 0.0;
-                
+
                 // Use TaxRateNotifier to handle update & audit
-                await ref.read(taxRateProvider.notifier).updateTaxRateOverride(newRate, 'Manual Dashboard Override');
-                
+                await ref.read(taxRateProvider.notifier).updateTaxRateOverride(
+                    newRate, 'Manual Dashboard Override');
+
                 // Update local UI immediately (optimistic)
                 final updatedStore = store.copyWith(taxRate: newRate);
                 ref.read(activeStoreProvider.notifier).state = updatedStore;
-                
+
                 if (context.mounted) Navigator.pop(context);
               },
               child: const Text('Save'),
@@ -149,7 +203,8 @@ class _SecurityBadge extends StatelessWidget {
   final bool isValid;
   final Color color;
 
-  const _SecurityBadge({required this.label, required this.isValid, required this.color});
+  const _SecurityBadge(
+      {required this.label, required this.isValid, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +214,8 @@ class _SecurityBadge extends StatelessWidget {
         color: Colors.white,
         size: 16,
       ),
-      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      label: Text(label,
+          style: const TextStyle(color: Colors.white, fontSize: 12)),
       backgroundColor: isValid ? color : Colors.grey,
       padding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grocery/core/utils/image_compressor.dart';
 import 'package:image/image.dart' as img;
@@ -24,16 +23,15 @@ void main() {
     await file.writeAsBytes(originalBytes);
     
     final originalSize = await file.length();
-    print('Original Size: ${originalSize / 1024} KB');
     
     // 2. Compress
     final compressedBytes = await ImageCompressor.compressFile(file);
     
     expect(compressedBytes, isNotNull);
     final compressedSize = compressedBytes!.length;
-    print('Compressed Size: ${compressedSize / 1024} KB');
     
     // 3. Verify
+    expect(originalSize, greaterThan(0));
     expect(compressedSize, lessThanOrEqualTo(100 * 1024)); // < 100KB
     
     // Cleanup

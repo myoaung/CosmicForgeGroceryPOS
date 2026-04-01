@@ -1,9 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:grocery/core/database/local_database.dart';
 import 'package:grocery/core/services/cloud_recovery_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Mock Supabase is hard, let's use a fake strategy or skip the actual network call verification 
 // and focus on the logic that "if local DB is NOT empty, it returns early".

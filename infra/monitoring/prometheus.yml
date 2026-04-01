@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'cosmic-forge-pos-api'
+    static_configs:
+      - targets: ['supabase-kong:8000']
+
+  - job_name: 'cosmic-forge-pos-edge'
+    static_configs:
+      - targets: ['supabase-edge-runtime:9999']
+
+  - job_name: 'cosmic-forge-pos-sync-worker'
+    static_configs:
+      - targets: ['sync-worker:9100']

@@ -1,22 +1,21 @@
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:grocery/core/database/local_database.dart';
 import 'package:grocery/features/products/providers/product_provider.dart';
+import 'package:grocery/core/repositories/product_repository.dart';
 import 'package:grocery/core/services/supabase_storage_service.dart';
-import 'package:grocery/core/services/store_service.dart'; // For audit
+// For audit
 import 'package:grocery/core/providers/store_provider.dart';
-import 'package:grocery/core/providers/database_provider.dart';
-import 'package:drift/drift.dart' as drift;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:grocery/features/products/widgets/shopify_upload_progress.dart';
 import 'package:grocery/core/providers/sync_provider.dart';
+import 'package:grocery/core/database/local_database.dart';
 
 // Provider for Storage Service
-final storageServiceProvider = Provider((ref) => SupabaseStorageService(Supabase.instance.client));
+final storageServiceProvider =
+    Provider((ref) => SupabaseStorageService(Supabase.instance.client));
 
 class ProductEditScreen extends ConsumerStatefulWidget {
   final Product? product;
@@ -44,7 +43,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.product?.name ?? '');
-    _priceController = TextEditingController(text: widget.product?.price.toString() ?? '');
+    _priceController =
+        TextEditingController(text: widget.product?.price.toString() ?? '');
     _unitType = widget.product?.unitType ?? 'UNIT';
     _isTaxExempt = widget.product?.isTaxExempt ?? false;
     _existingImagePath = widget.product?.imagePath;
@@ -65,10 +65,21 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final scope = ref.read(activeTenantStoreScopeProvider);
+    if (scope == null || scope.storeId == null || scope.storeId!.isEmpty) {
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+            content: Text('Select an active store before saving products.')),
+      );
+      return;
+    }
 
     final name = _nameController.text;
     final price = double.tryParse(_priceController.text) ?? 0.0;
-    
+
     // Determine ID
     final productId = widget.product?.id ?? const Uuid().v4();
 
@@ -76,11 +87,12 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     String? imageUrl = _existingImageUrl; // Keep old if not changed
     String? imagePath = _existingImagePath;
 
-    if (_imageFile != null || (_existingImagePath != null && _existingImageUrl == null)) {
+    if (_imageFile != null ||
+        (_existingImagePath != null && _existingImageUrl == null)) {
       File fileToUpload = _imageFile ?? File(_existingImagePath!);
-      
+
       // Update local tracking
-      imagePath = fileToUpload.path; 
+      imagePath = fileToUpload.path;
 
       setState(() {
         _isUploading = true;
@@ -89,91 +101,86 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       });
 
       try {
-        final tenantId = 'tenant_1'; // Mock or get from User/Auth
-        // In real app, get tenantId from Auth Provider
-
-        // In real app, get tenantId from Auth Provider
-        
+        final tenantId = scope.tenantId;
         final storage = ref.read(storageServiceProvider);
-        
+
         final url = await storage.uploadProductImage(
           imageFile: fileToUpload,
-          tenantId: tenantId, 
+          tenantId: tenantId,
           productId: productId,
           onUploadProgress: (sent, total) {
-             if (mounted) {
-               setState(() {
-                 _uploadProgress = sent / total;
-               });
-             }
+            if (mounted) {
+              setState(() {
+                _uploadProgress = sent / total;
+              });
+            }
           },
         );
 
         if (url != null) {
           imageUrl = url;
           // Update in memory so UI reflects it immediately if we don't close screen
-          _existingImageUrl = url; 
-          
+          _existingImageUrl = url;
+
           setState(() => _uploadProgress = 1.0);
-          
+
           // Log Audit
           ref.read(storeServiceProvider).logAudit(
-            actionType: 'IMAGE_UPLOAD',
-            description: 'Uploaded image for product $name ($productId)'
-          );
+              actionType: 'IMAGE_UPLOAD',
+              description: 'Uploaded image for product $name ($productId)');
         } else {
-             // Handle upload fail - retry UI logic could be here
-             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image upload failed. Saved locally. Text retry later.')));
+          // Handle upload fail - retry UI logic could be here
+          if (!mounted) return;
+          scaffoldMessenger.showSnackBar(const SnackBar(
+              content: Text(
+                  'Image upload failed. Saved locally. Text retry later.')));
         }
-
       } catch (e) {
-        print('Upload Error: $e');
+        debugPrint('Upload Error: $e');
         if (mounted) {
           setState(() {
             _isUploadError = true;
             _isUploading = false; // Stop loading state so retry button shows
           });
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload Error: $e')));
+          if (!mounted) return;
+          scaffoldMessenger.showSnackBar(SnackBar(content: Text('Upload Error: $e')));
         }
       } finally {
         if (mounted && !_isUploadError) {
-           setState(() => _isUploading = false);
+          setState(() => _isUploading = false);
         }
       }
     }
 
     // 2. Save to Drift
-    final companion = ProductsCompanion(
-      id: drift.Value(productId),
-      name: drift.Value(name),
-      price: drift.Value(price),
-      unitType: drift.Value(_unitType),
-      isTaxExempt: drift.Value(_isTaxExempt),
-      imagePath: drift.Value(imagePath),
-      imageUrl: drift.Value(imageUrl),
-    );
-
     final controller = ref.read(productControllerProvider);
-    
-    if (widget.product == null) {
-      await controller.addProduct(companion);
-    } else {
-      await controller.updateProduct(companion);
-    }
-    
+    await controller.upsertProduct(ProductDraft(
+      id: widget.product?.id ?? productId,
+      tenantId: scope.tenantId,
+      storeId: scope.storeId,
+      name: name,
+      price: price,
+      unitType: _unitType,
+      isTaxExempt: _isTaxExempt,
+      imagePath: imagePath,
+      imageUrl: imageUrl,
+      createdAt: widget.product?.createdAt,
+      stock: widget.product?.stock,
+    ));
+
     // Trigger background sync for images if needed (Fire & Forget)
     // "The SyncService must trigger the image upload after the product data is saved locally."
-    ref.read(syncServiceProvider).uploadPendingImages('tenant_1');
+    ref.read(syncServiceProvider).uploadPendingImages(scope.tenantId);
 
-    if (mounted) Navigator.pop(context);
-
-    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+    navigator.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.product == null ? 'New Product' : 'Edit Product')),
+      appBar: AppBar(
+          title: Text(widget.product == null ? 'New Product' : 'Edit Product')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -194,96 +201,116 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                       if (_imageFile != null)
-                        Image.file(_imageFile!, fit: BoxFit.cover, width: 150, height: 150)
+                      if (_imageFile != null)
+                        Image.file(_imageFile!,
+                            fit: BoxFit.cover, width: 150, height: 150)
                       else if (_existingImagePath != null)
-                         Image.file(File(_existingImagePath!), fit: BoxFit.cover, width: 150, height: 150, errorBuilder: (_,__,___) => const Icon(Icons.broken_image))
+                        Image.file(File(_existingImagePath!),
+                            fit: BoxFit.cover,
+                            width: 150,
+                            height: 150,
+                            errorBuilder: (_, __, ___) =>
+                                const Icon(Icons.broken_image))
                       else if (_existingImageUrl != null)
-                        Image.network(_existingImageUrl!, fit: BoxFit.cover, width: 150, height: 150) // If we want to show cloud img
+                        Image.network(_existingImageUrl!,
+                            fit: BoxFit.cover,
+                            width: 150,
+                            height: 150) // If we want to show cloud img
                       else
                         const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
-                            Text('Add Photo', style: TextStyle(color: Colors.grey)),
+                            Icon(Icons.add_a_photo,
+                                size: 40, color: Colors.grey),
+                            Text('Add Photo',
+                                style: TextStyle(color: Colors.grey)),
                           ],
                         ),
-                        
+
                       // Progress Bar
                       if (_isUploading)
                         Positioned(
                           bottom: 0,
                           left: 0,
                           right: 0,
-                          child: ShopifyUploadProgress(progress: _uploadProgress, isError: _isUploadError),
+                          child: ShopifyUploadProgress(
+                              progress: _uploadProgress,
+                              isError: _isUploadError),
                         ),
-                        
+
                       // Retry Button if Upload Failed (Local Exists, Cloud Missing)
-                      if (!_isUploading && 
-                          ((_imageFile != null && _existingImageUrl == null) || 
-                           (_existingImagePath != null && _existingImageUrl == null))) ...[
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: CircleAvatar(
-                              backgroundColor: Colors.white,
-                              radius: 16,
-                              child: IconButton(
-                                icon: const Icon(Icons.refresh, color: Colors.orange, size: 16),
-                                onPressed: _saveProduct, // Just calling save triggers upload logic again
-                                tooltip: 'Retry Upload',
-                              ),
+                      if (!_isUploading &&
+                          ((_imageFile != null && _existingImageUrl == null) ||
+                              (_existingImagePath != null &&
+                                  _existingImageUrl == null))) ...[
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.white,
+                            radius: 16,
+                            child: IconButton(
+                              icon: const Icon(Icons.refresh,
+                                  color: Colors.orange, size: 16),
+                              onPressed:
+                                  _saveProduct, // Just calling save triggers upload logic again
+                              tooltip: 'Retry Upload',
                             ),
-                          )
+                          ),
+                        )
                       ]
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Product Name', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Product Name', border: OutlineInputBorder()),
                 validator: (v) => v == null || v.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _priceController,
-                decoration: const InputDecoration(labelText: 'Price (MMK)', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Price (MMK)', border: OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 validator: (v) => v == null || v.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              
+
               DropdownButtonFormField<String>(
-                value: _unitType,
-                decoration: const InputDecoration(labelText: 'Unit Type', border: OutlineInputBorder()),
-                items: ['UNIT', 'WEIGHT'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                initialValue: _unitType,
+                decoration: const InputDecoration(
+                    labelText: 'Unit Type', border: OutlineInputBorder()),
+                items: ['UNIT', 'WEIGHT']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
                 onChanged: (v) => setState(() => _unitType = v!),
               ),
               const SizedBox(height: 16),
-              
+
               SwitchListTile(
                 title: const Text('Tax Exempt'),
                 value: _isTaxExempt,
                 onChanged: (v) => setState(() => _isTaxExempt = v),
               ),
               const SizedBox(height: 24),
-              
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isUploading ? null : _saveProduct,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white
-                  ),
-                  child: _isUploading 
-                    ? const Text('Uploading...') 
-                    : const Text('Save Product'),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white),
+                  child: _isUploading
+                      ? const Text('Uploading...')
+                      : const Text('Save Product'),
                 ),
               )
             ],

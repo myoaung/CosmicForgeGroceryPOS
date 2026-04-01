@@ -1,5 +1,6 @@
 
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path/path.dart' as p;
 
@@ -20,7 +21,7 @@ class SupabaseStorageService {
   }) async {
     try {
         final fileExt = p.extension(imageFile.path); // e.g. .jpg
-        final fileName = '$productId$fileExt'; // Simplified without extra folder layer inside tenant if strict path is /images/{tenant_id}/{product_id}.jpg
+        // fileName removed as it was unused
         // User said: /images/{tenant_id}/{product_id}.jpg
         // Storage path is relative to bucket root.
         // So path = '{tenant_id}/{product_id}.jpg'
@@ -42,11 +43,13 @@ class SupabaseStorageService {
         // Mock progress since real one is failing to compile
         onUploadProgress?.call(bytes.length, bytes.length);
 
-        // Get Public URL
-        final publicUrl = _supabase.storage.from(_bucketName).getPublicUrl(filePath);
-        return publicUrl;
+        // Bucket is private. Return a signed URL.
+        final signedUrl = await _supabase.storage
+            .from(_bucketName)
+            .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+        return signedUrl;
     } catch (e) {
-      print('SupabaseStorageService Error: $e');
+      debugPrint('SupabaseStorageService Error: $e');
       rethrow; // Rethrow to let UI handle error state
     }
   }

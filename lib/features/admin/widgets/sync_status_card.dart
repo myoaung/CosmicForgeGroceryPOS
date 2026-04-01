@@ -7,7 +7,7 @@ import 'package:grocery/core/providers/database_provider.dart';
 final pendingSyncCountProvider = StreamProvider<int>((ref) {
   final db = ref.watch(databaseProvider);
   return db.select(db.transactions).watch().map((transactions) {
-    return transactions.where((t) => !t.isSynced).length;
+    return transactions.where((t) => t.syncStatus != 'synced').length;
   });
 });
 

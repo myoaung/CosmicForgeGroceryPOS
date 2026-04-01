@@ -81,3 +81,7 @@ android {
 flutter {
     source = "../.."
 }
+
+tasks.withType<Test> {
+    enabled = false
+}

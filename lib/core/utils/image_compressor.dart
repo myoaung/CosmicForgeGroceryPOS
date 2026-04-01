@@ -1,5 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 class ImageCompressor {
@@ -30,7 +31,7 @@ class ImageCompressor {
 
       return Uint8List.fromList(compressed);
     } catch (e) {
-      print('Image Compression Error: $e');
+      debugPrint('Image Compression Error: $e');
       return null;
     }
   }

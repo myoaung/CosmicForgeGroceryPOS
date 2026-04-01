@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grocery/core/providers/store_provider.dart';
 import '../../core/services/store_service.dart';
@@ -35,7 +36,7 @@ class TaxRateNotifier extends StateNotifier<double> {
       }
     } catch (e) {
       // Fallback handled by StoreService internally for update, but we should log local error
-      print('Tax Override Error: $e');
+      debugPrint('Tax Override Error: $e');
       // If store update failed, StoreService likely reverted or used local fallback.
       // We keep state as is to reflect UI change optimistically or revert if needed?
       // Requirement says "Fallback handled by StoreService", implying StoreService handles synchronization.

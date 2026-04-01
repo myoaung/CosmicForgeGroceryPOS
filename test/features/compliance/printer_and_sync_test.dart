@@ -34,9 +34,9 @@ void main() {
     test('Cloud Sync Upload (Deterministic Mock)', () async {
       // Data
       final dummyFile = File('dummy.jpg');
-      final tenantId = 'tenant_123';
-      final productId = 'prod_456';
-      final expectedUrl = 'https://cloud.com/tenant_123/prod_456.jpg';
+      const tenantId = 'tenant_123';
+      const productId = 'prod_456';
+      const expectedUrl = 'https://cloud.com/tenant_123/prod_456.jpg';
 
       // Stubbing
       when(mockStorage.uploadProductImage(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../database/local_database.dart';
 import 'package:drift/drift.dart';
@@ -22,7 +23,7 @@ class CloudRecoveryService {
     }
 
     try {
-      final response = await _supabase! /* Checked above */
+      final response = await _supabase /* Checked above */
           .from('transactions')
           .select('*, transaction_items(*)')
           .gte('timestamp', DateTime.now().subtract(const Duration(days: 30)).toIso8601String())
@@ -45,7 +46,11 @@ class CloudRecoveryService {
             taxAmount: (txData['tax_amount'] as num).toDouble(),
             totalAmount: (txData['total_amount'] as num).toDouble(),
             timestamp: DateTime.parse(txData['timestamp']),
-            isSynced: const Value(true), // recovered data is by definition synced
+            createdAt: Value(DateTime.parse(txData['created_at'] ?? txData['timestamp'])),
+            updatedAt: Value(DateTime.parse(txData['updated_at'] ?? txData['timestamp'])),
+            isDirty: const Value(false),
+            syncStatus: const Value('synced'),
+            lastSyncedAt: Value(DateTime.now()),
           ));
 
           // Insert Items
@@ -63,10 +68,10 @@ class CloudRecoveryService {
         }
       });
 
-      print('Cloud Recovery: Restored ${data.length} transactions.');
+      debugPrint('Cloud Recovery: Restored ${data.length} transactions.');
 
     } catch (e) {
-      print('Cloud Recovery Error: $e');
+      debugPrint('Cloud Recovery Error: $e');
       // Fail silently, we are offline or something is wrong.
     }
   }
