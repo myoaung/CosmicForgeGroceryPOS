@@ -1,0 +1,225 @@
+name: Staging Deploy — Cosmic Forge POS
+
+# Triggers on every push to main or develop (not on tag pushes, not PRs).
+# The [skip ci] commit message suffix bypasses this workflow.
+on:
+  push:
+    branches: [main, develop]
+
+env:
+  FLUTTER_VERSION: '3.19.0'
+  COVERAGE_THRESHOLD: '70'
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 1 — Security & Licensing Test Suite
+# Runs the three test files introduced in the FIX-IDOR-LOGIC session.
+# This job is intentionally fast (no full rebuild) so failures surface quickly.
+# ──────────────────────────────────────────────────────────────────────────────
+jobs:
+  security-licensing-tests:
+    name: Security & Licensing Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run MMK Rounding Tests (local/cloud parity)
+        run: |
+          flutter test test/core/localization/mmk_rounding_test.dart \
+            --reporter=expanded
+
+      - name: Run IDOR Order Isolation Tests
+        run: |
+          flutter test test/features/order_idor_isolation_test.dart \
+            --reporter=expanded
+
+      - name: Run License Model Tests
+        run: |
+          flutter test test/features/license_model_test.dart \
+            --reporter=expanded
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 2 — Full Coverage Gate (must pass before staging deploy)
+# Re-uses the same enforcement logic as ci.yml lines 39-42.
+# A push where total coverage < 70% will exit 1 and block downstream jobs.
+# ──────────────────────────────────────────────────────────────────────────────
+  coverage-gate:
+    name: Coverage Gate (≥ 70%)
+    runs-on: ubuntu-latest
+    needs: security-licensing-tests
+    outputs:
+      coverage_pct: ${{ steps.measure.outputs.coverage_pct }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run full test suite with coverage
+        run: flutter test --coverage
+
+      - name: Enforce coverage threshold
+        id: measure
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lcov
+          lcov --summary coverage/lcov.info
+          COVERAGE=$(lcov --summary coverage/lcov.info 2>/dev/null \
+            | awk '/lines/{print $2}' | tr -d '%')
+          echo "Coverage lines: ${COVERAGE}%"
+          echo "coverage_pct=${COVERAGE}" >> "$GITHUB_OUTPUT"
+          COVERAGE_INT=${COVERAGE%.*}
+          if [ "${COVERAGE_INT}" -lt "${COVERAGE_THRESHOLD}" ]; then
+            echo "::error::Coverage gate FAILED: ${COVERAGE}% < ${COVERAGE_THRESHOLD}%"
+            echo "::error::Resolve failing coverage before deploying to staging."
+            exit 1
+          fi
+          echo "Coverage gate PASSED: ${COVERAGE}% >= ${COVERAGE_THRESHOLD}%"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 3 — Staging Supabase RPC Push
+# Guards against an unconfigured staging project-ref so no corrupt partial
+# deployment can occur.  Only runs after coverage-gate succeeds.
+# ──────────────────────────────────────────────────────────────────────────────
+  deploy-staging-supabase:
+    name: Deploy Supabase RPC to Staging
+    runs-on: ubuntu-latest
+    needs: coverage-gate
+    environment: staging          # links to the GitHub "staging" environment
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Secret guard ───────────────────────────────────────────────────────
+      # Fail fast and clearly if the staging project-ref is not configured.
+      # This prevents supabase CLI from silently targeting the wrong project.
+      - name: Verify staging secrets are configured
+        env:
+          SUPABASE_STAGING_PROJECT_REF: ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
+          SUPABASE_STAGING_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_STAGING_SERVICE_ROLE_KEY }}
+        run: |
+          MISSING=()
+
+          if [ -z "${SUPABASE_STAGING_PROJECT_REF}" ]; then
+            MISSING+=("SUPABASE_STAGING_PROJECT_REF")
+          fi
+
+          if [ -z "${SUPABASE_STAGING_SERVICE_ROLE_KEY}" ]; then
+            MISSING+=("SUPABASE_STAGING_SERVICE_ROLE_KEY")
+          fi
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "::error::The following required secrets are NOT configured in"
+            echo "::error::Settings → Secrets → Actions (repository or environment 'staging'):"
+            for secret in "${MISSING[@]}"; do
+              echo "::error::  • ${secret}"
+            done
+            echo "::error::Add these secrets and re-run the workflow."
+            exit 1
+          fi
+
+          echo "✅ All required staging secrets are present."
+
+      # ── Supabase CLI setup ─────────────────────────────────────────────────
+      - name: Install Supabase CLI
+        run: |
+          curl -sSfL \
+            https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
+            | tar -xz
+          sudo mv supabase /usr/local/bin/supabase
+          supabase --version
+
+      # ── Link to staging project ────────────────────────────────────────────
+      - name: Link Supabase CLI to staging project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_SERVICE_ROLE_KEY }}
+        run: |
+          supabase link \
+            --project-ref "${{ secrets.SUPABASE_STAGING_PROJECT_REF }}" \
+            --password ""   # DB password not needed for migration push via service role
+
+      # ── Push pending migrations (includes pin_login RPC) ────────────────────
+      - name: Push pending migrations to staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_SERVICE_ROLE_KEY }}
+        run: |
+          echo "Pushing migrations to project: ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}"
+          supabase db push --project-ref "${{ secrets.SUPABASE_STAGING_PROJECT_REF }}"
+          echo "✅ Staging migration push complete."
+
+      # ── Verify pin_login RPC is callable ──────────────────────────────────
+      # A smoke-test SQL query confirming the function signature exists.
+      # Does NOT call the RPC with real credentials — only checks pg_proc.
+      - name: Smoke-test pin_login RPC existence
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_STAGING_DB_URL }}
+        run: |
+          if [ -z "${SUPABASE_DB_URL}" ]; then
+            echo "::warning::SUPABASE_STAGING_DB_URL not set — skipping RPC smoke test."
+            exit 0
+          fi
+          RESULT=$(psql "${SUPABASE_DB_URL}" -tAc \
+            "SELECT COUNT(*) FROM pg_proc WHERE proname = 'pin_login';")
+          if [ "${RESULT}" -lt 1 ]; then
+            echo "::error::pin_login RPC not found in staging database after migration push."
+            exit 1
+          fi
+          echo "✅ pin_login RPC confirmed present in staging."
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 4 — Staging Web Dashboard Deploy
+# Deploys the Flutter web build to the Vercel staging alias.
+# Runs in parallel with the Supabase job (both depend on coverage-gate).
+# ──────────────────────────────────────────────────────────────────────────────
+  deploy-staging-web:
+    name: Deploy Web Dashboard to Vercel Staging
+    runs-on: ubuntu-latest
+    needs: coverage-gate
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Flutter web (staging)
+        run: |
+          flutter build web --release \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Deploy to Vercel staging alias
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          npm install -g vercel
+          # Deploy without --prod so it lands on the staging preview URL.
+          vercel deploy build/web --confirm --token "$VERCEL_TOKEN"
