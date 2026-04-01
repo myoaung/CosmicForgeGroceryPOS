@@ -20,7 +20,7 @@ jobs:
     name: Security & Licensing Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: subosito/flutter-action@v2
         with:
@@ -58,7 +58,7 @@ jobs:
     outputs:
       coverage_pct: ${{ steps.measure.outputs.coverage_pct }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: subosito/flutter-action@v2
         with:
@@ -108,7 +108,7 @@ jobs:
     needs: coverage-gate
     environment: staging          # links to the GitHub "staging" environment
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # ── Secret guard ───────────────────────────────────────────────────────
       # Fail fast and clearly if the staging project-ref is not configured.
@@ -197,7 +197,7 @@ jobs:
     needs: coverage-gate
     environment: staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: subosito/flutter-action@v2
         with:
