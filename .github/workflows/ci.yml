@@ -40,7 +40,7 @@ jobs:
             echo "Coverage gate failed: ${COVERAGE}% < ${COVERAGE_THRESHOLD}%"
             exit 1
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage/
@@ -82,7 +82,7 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter pub outdated --json > dependency_audit.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dependency-audit
           path: dependency_audit.json
@@ -115,7 +115,7 @@ jobs:
       - run: flutter pub get
       - run: flutter build apk --release --dart-define=SUPABASE_URL=$env:SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$env:SUPABASE_ANON_KEY
       - run: flutter build appbundle --release --dart-define=SUPABASE_URL=$env:SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$env:SUPABASE_ANON_KEY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android-artifacts
           path: |
@@ -134,7 +134,7 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter build ipa --release --no-codesign --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ios-artifact
           path: build/ios/ipa/*.ipa
@@ -151,7 +151,7 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter build web --release --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: web-artifact
           path: build/web
